@@ -1,0 +1,4 @@
+
+> customer-portal@0.1.0 type-check /Users/raja/work/agentcare/agentcare-web/apps/customer-portal
+> tsc --noEmit
+
