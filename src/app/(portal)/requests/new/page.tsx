@@ -2,7 +2,8 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { Button } from '@agentcare/ui';
+import { Button } from '@/components/ui/button';
+import { api } from '@/lib/fetch-client';
 
 interface ComplaintType {
   id: string;
@@ -13,11 +14,31 @@ export default function NewRequestPage() {
   const router = useRouter();
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
-  const [complaintTypes, setComplaintTypes] = useState<ComplaintType[]>([
-    { id: 'cmig5s2o7000vx4l3nm9n6umz', name: 'Plumbing' },
-    { id: 'cmig5s2o7000xx4l39b7mvagf', name: 'AC Maintenance' },
-    { id: 'cmig5s2o7000yx4l3t4qh7ijr', name: 'Electrical' },
-  ]);
+  const [complaintTypes, setComplaintTypes] = useState<ComplaintType[]>([]);
+  const [isLoadingTypes, setIsLoadingTypes] = useState(true);
+
+  useEffect(() => {
+    fetchComplaintTypes();
+  }, []);
+
+  async function fetchComplaintTypes() {
+    try {
+      const response = await api.complaintTypes.getAll();
+      if (response.success && response.data) {
+        setComplaintTypes(response.data);
+      }
+    } catch (error) {
+      console.error('Failed to fetch complaint types:', error);
+      // Fallback to default types if API fails
+      setComplaintTypes([
+        { id: 'plumbing', name: 'Plumbing' },
+        { id: 'ac', name: 'AC Maintenance' },
+        { id: 'electrical', name: 'Electrical' },
+      ]);
+    } finally {
+      setIsLoadingTypes(false);
+    }
+  }
 
   async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
@@ -27,33 +48,20 @@ export default function NewRequestPage() {
     const formData = new FormData(e.currentTarget);
 
     try {
-      const token = localStorage.getItem('accessToken');
-      const response = await fetch('http://localhost:4001/api/v1/service-requests', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${token}`,
-        },
-        body: JSON.stringify({
-          title: formData.get('title'),
-          description: formData.get('description'),
-          complaintTypeId: formData.get('complaintTypeId'),
-          priority: formData.get('priority'),
-          customerId: 'demo-customer-001', // In real app, get from context
-          propertyId: 'demo-property-1',
-          zoneId: 'ZONE-JUF',
-        }),
+      const response = await api.requests.create({
+        title: formData.get('title') as string,
+        description: formData.get('description') as string,
+        complaintTypeId: formData.get('complaintTypeId') as string,
+        priority: formData.get('priority') as string,
       });
 
-      const data = await response.json();
-
-      if (!response.ok) {
-        throw new Error(data.error?.message || 'Failed to create request');
+      if (response.success) {
+        router.push(`/requests/${response.data.id}`);
+      } else {
+        throw new Error(response.error?.message || 'Failed to create request');
       }
-
-      router.push(`/requests/${data.data.id}`);
     } catch (err: any) {
-      setError(err.message);
+      setError(err.message || 'Failed to create request');
     } finally {
       setIsLoading(false);
     }
@@ -91,9 +99,12 @@ export default function NewRequestPage() {
               id="complaintTypeId"
               name="complaintTypeId"
               required
-              className="w-full rounded-lg border p-3 focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
+              disabled={isLoadingTypes}
+              className="w-full rounded-lg border p-3 focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary disabled:bg-gray-100"
             >
-              <option value="">Select a service type</option>
+              <option value="">
+                {isLoadingTypes ? 'Loading...' : 'Select a service type'}
+              </option>
               {complaintTypes.map((type) => (
                 <option key={type.id} value={type.id}>
                   {type.name}
@@ -141,7 +152,7 @@ export default function NewRequestPage() {
             >
               Cancel
             </Button>
-            <Button type="submit" disabled={isLoading} className="flex-1">
+            <Button type="submit" disabled={isLoading || isLoadingTypes} className="flex-1">
               {isLoading ? 'Submitting...' : 'Submit Request'}
             </Button>
           </div>

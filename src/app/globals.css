@@ -4,13 +4,38 @@
 
 @layer base {
   :root {
-    --primary: 37 99 235;
+    --primary: 99 102 241;
     --primary-foreground: 255 255 255;
+    --accent: 244 114 182;
+    --background: 248 250 252;
+    --foreground: 15 23 42;
+    --card: 255 255 255;
+    --card-foreground: 15 23 42;
+    --muted: 241 245 249;
+    --muted-foreground: 100 116 139;
+  }
+
+  .dark {
+    --primary: 129 140 248;
+    --primary-foreground: 15 23 42;
+    --accent: 244 114 182;
+    --background: 2 6 23;
+    --foreground: 248 250 252;
+    --card: 15 23 42;
+    --card-foreground: 248 250 252;
+    --muted: 30 41 59;
+    --muted-foreground: 148 163 184;
+  }
+
+  body {
+    background-color: rgb(var(--background));
+    color: rgb(var(--foreground));
+    font-feature-settings: "rlig" 1, "calt" 1;
   }
 }
 
 @layer components {
   .btn-primary {
-    @apply bg-primary text-white px-4 py-2 rounded-lg hover:bg-primary-700 transition;
+    @apply bg-primary text-white px-4 py-2 rounded-lg hover:bg-primary-600 transition-all duration-300;
   }
 }

@@ -3,7 +3,8 @@
 import { useEffect, useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
-import { Button } from '@agentcare/ui';
+import { Button } from '@/components/ui/button';
+import { api } from '@/lib/fetch-client';
 
 interface ServiceRequest {
   id: string;
@@ -33,14 +34,10 @@ export default function RequestDetailPage() {
 
   async function fetchRequest() {
     try {
-      const token = localStorage.getItem('accessToken');
-      const response = await fetch(`http://localhost:4001/api/v1/service-requests/${params.id}`, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
-      const data = await response.json();
+      const response = await api.requests.getById(params.id as string);
 
-      if (data.success) {
-        setRequest(data.data);
+      if (response.success) {
+        setRequest(response.data);
       }
     } catch (error) {
       console.error('Failed to fetch request:', error);

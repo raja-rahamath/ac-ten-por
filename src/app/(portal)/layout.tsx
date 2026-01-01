@@ -3,6 +3,14 @@
 import { useEffect, useState } from 'react';
 import { useRouter, usePathname } from 'next/navigation';
 import Link from 'next/link';
+import { api } from '@/lib/fetch-client';
+
+interface User {
+  id: string;
+  firstName: string;
+  lastName: string;
+  email: string;
+}
 
 export default function PortalLayout({
   children,
@@ -11,7 +19,7 @@ export default function PortalLayout({
 }) {
   const router = useRouter();
   const pathname = usePathname();
-  const [user, setUser] = useState<any>(null);
+  const [user, setUser] = useState<User | null>(null);
 
   useEffect(() => {
     const token = localStorage.getItem('accessToken');
@@ -27,11 +35,17 @@ export default function PortalLayout({
     }
   }, [router]);
 
-  function handleLogout() {
-    localStorage.removeItem('accessToken');
-    localStorage.removeItem('refreshToken');
-    localStorage.removeItem('user');
-    router.push('/login');
+  async function handleLogout() {
+    try {
+      await api.auth.logout();
+    } catch (error) {
+      // Ignore errors on logout
+    } finally {
+      localStorage.removeItem('accessToken');
+      localStorage.removeItem('refreshToken');
+      localStorage.removeItem('user');
+      router.push('/login');
+    }
   }
 
   const navItems = [

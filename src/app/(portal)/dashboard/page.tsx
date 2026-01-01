@@ -2,7 +2,8 @@
 
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
-import { Button } from '@agentcare/ui';
+import { Button } from '@/components/ui/button';
+import { api } from '@/lib/fetch-client';
 
 interface ServiceRequest {
   id: string;
@@ -29,18 +30,17 @@ export default function DashboardPage() {
 
   async function fetchRequests() {
     try {
-      const token = localStorage.getItem('accessToken');
-      const response = await fetch('http://localhost:4001/api/v1/service-requests?limit=5', {
-        headers: { Authorization: `Bearer ${token}` },
-      });
-      const data = await response.json();
+      const response = await api.requests.getAll({ limit: 5 });
 
-      if (data.success) {
-        setRequests(data.data);
-        const total = data.pagination.total;
-        const open = data.data.filter((r: any) => r.status === 'NEW').length;
-        const inProgress = data.data.filter((r: any) => ['ASSIGNED', 'IN_PROGRESS'].includes(r.status)).length;
-        const completed = data.data.filter((r: any) => r.status === 'COMPLETED').length;
+      if (response.success) {
+        setRequests(response.data);
+        // Calculate stats from response
+        const total = response.data.length;
+        const open = response.data.filter((r: ServiceRequest) => r.status === 'NEW').length;
+        const inProgress = response.data.filter((r: ServiceRequest) =>
+          ['ASSIGNED', 'IN_PROGRESS'].includes(r.status)
+        ).length;
+        const completed = response.data.filter((r: ServiceRequest) => r.status === 'COMPLETED').length;
         setStats({ total, open, inProgress, completed });
       }
     } catch (error) {
@@ -72,10 +72,10 @@ export default function DashboardPage() {
 
       {/* Stats */}
       <div className="mb-8 grid gap-6 md:grid-cols-4">
-        <StatCard title="Total Requests" value={stats.total} icon="📋" />
-        <StatCard title="Open" value={stats.open} icon="🔵" />
-        <StatCard title="In Progress" value={stats.inProgress} icon="🟡" />
-        <StatCard title="Completed" value={stats.completed} icon="🟢" />
+        <StatCard title="Total Requests" value={stats.total} color="bg-blue-500" />
+        <StatCard title="Open" value={stats.open} color="bg-blue-400" />
+        <StatCard title="In Progress" value={stats.inProgress} color="bg-yellow-500" />
+        <StatCard title="Completed" value={stats.completed} color="bg-green-500" />
       </div>
 
       {/* Recent Requests */}
@@ -125,11 +125,13 @@ export default function DashboardPage() {
   );
 }
 
-function StatCard({ title, value, icon }: { title: string; value: number; icon: string }) {
+function StatCard({ title, value, color }: { title: string; value: number; color: string }) {
   return (
     <div className="rounded-xl bg-white p-6 shadow-sm">
       <div className="flex items-center gap-4">
-        <span className="text-3xl">{icon}</span>
+        <div className={`h-12 w-12 rounded-lg ${color} flex items-center justify-center`}>
+          <span className="text-xl text-white font-bold">{value}</span>
+        </div>
         <div>
           <p className="text-2xl font-bold">{value}</p>
           <p className="text-sm text-gray-500">{title}</p>

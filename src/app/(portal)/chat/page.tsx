@@ -1,7 +1,8 @@
 'use client';
 
 import { useState, useRef, useEffect } from 'react';
-import { Button } from '@agentcare/ui';
+import { Button } from '@/components/ui/button';
+import { api } from '@/lib/fetch-client';
 
 interface Message {
   id: string;
@@ -21,6 +22,7 @@ export default function ChatPage() {
   ]);
   const [input, setInput] = useState('');
   const [isLoading, setIsLoading] = useState(false);
+  const [sessionId, setSessionId] = useState<string | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -43,39 +45,28 @@ export default function ChatPage() {
     setIsLoading(true);
 
     try {
-      const token = localStorage.getItem('accessToken');
-      // Get user info for customer_id
-      const userData = localStorage.getItem('user');
-      const user = userData ? JSON.parse(userData) : null;
-
-      const response = await fetch('http://localhost:8000/api/v1/chat', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${token}`,
-        },
-        body: JSON.stringify({
-          message: userMessage.content,
-          conversation_id: `portal-${user?.id || 'anonymous'}`,
-          tenant_id: 'default',
-          customer_id: user?.id || 'anonymous',
-        }),
+      const response = await api.chat.sendMessage({
+        message: userMessage.content,
+        sessionId: sessionId || undefined,
       });
 
-      if (!response.ok) {
+      if (response.success) {
+        // Save session ID for conversation continuity
+        if (response.data.sessionId) {
+          setSessionId(response.data.sessionId);
+        }
+
+        const assistantMessage: Message = {
+          id: (Date.now() + 1).toString(),
+          role: 'assistant',
+          content: response.data.response || 'I apologize, but I encountered an issue processing your request. Please try again.',
+          timestamp: new Date(),
+        };
+
+        setMessages((prev) => [...prev, assistantMessage]);
+      } else {
         throw new Error('Failed to get response');
       }
-
-      const data = await response.json();
-
-      const assistantMessage: Message = {
-        id: (Date.now() + 1).toString(),
-        role: 'assistant',
-        content: data.response || data.message || 'I apologize, but I encountered an issue processing your request. Please try again.',
-        timestamp: new Date(),
-      };
-
-      setMessages((prev) => [...prev, assistantMessage]);
     } catch (error) {
       console.error('Chat error:', error);
       const errorMessage: Message = {
