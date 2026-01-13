@@ -129,6 +129,13 @@ export const api = {
         body: JSON.stringify(data),
       }),
   },
+
+  public: {
+    getServices: () =>
+      fetchApi('/api/public/services', {
+        skipAuth: true,
+      }),
+  },
 };
 
 export { FetchError };
